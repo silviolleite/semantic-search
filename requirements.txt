@@ -1,0 +1,7 @@
+youtube-transcript-api>=1.2.4
+openai>=3.0.0
+faiss-cpu==1.8.0
+python-dotenv==1.0.1
+numpy==1.26.4
+tiktoken==0.7.0
+jupyter==1.1.1
