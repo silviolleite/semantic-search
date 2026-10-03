@@ -1,711 +1,713 @@
 <title>RAG vs Moment RAG</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
 
 <style>
-  :root {
-    --bg:       #0D1117;
-    --surface:  #161B22;
-    --border:   #30363D;
-    --text:     #E6EDF3;
-    --muted:    #8B949E;
-    --blue:     #58A6FF;
-    --orange:   #F0883E;
-    --green:    #3FB950;
-    --red:      #F85149;
-    --code-bg:  #1C2128;
-  }
-  @media (prefers-color-scheme: light) {
-    :root:not([data-theme="dark"]) {
-      --bg:       #FFFFFF;
-      --surface:  #F6F8FA;
-      --border:   #D0D7DE;
-      --text:     #1F2328;
-      --muted:    #636C76;
-      --blue:     #0969DA;
-      --orange:   #BC4C00;
-      --green:    #1A7F37;
-      --red:      #CF222E;
-      --code-bg:  #EFF1F3;
-    }
-  }
-  :root[data-theme="light"] {
-    --bg:       #FFFFFF;
-    --surface:  #F6F8FA;
-    --border:   #D0D7DE;
-    --text:     #1F2328;
-    --muted:    #636C76;
-    --blue:     #0969DA;
-    --orange:   #BC4C00;
-    --green:    #1A7F37;
-    --red:      #CF222E;
-    --code-bg:  #EFF1F3;
-  }
-
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', system-ui, sans-serif;
-    font-size: 16px;
-    line-height: 1.6;
-    height: 100vh;
+    background: #07090F;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
     overflow: hidden;
-    padding: 0;
+    font-family: 'DM Sans', system-ui, sans-serif;
   }
 
-  /* ── Slide shell ── */
-  #deck {
-    width: 100%;
-    height: 100vh;
+  /* ── 16:9 canvas ── */
+  #stage {
+    width: 1280px;
+    height: 720px;
     position: relative;
+    flex-shrink: 0;
+    transform-origin: center center;
   }
 
+  /* ── Slide base ── */
   .slide {
     position: absolute;
     inset: 0;
+    background: #0D1525;
     display: flex;
     flex-direction: column;
-    padding: 48px 72px 40px;
+    padding: 0;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.25s ease;
-    overflow-y: auto;
+    transition: opacity 0.2s ease;
   }
   .slide.active {
     opacity: 1;
     pointer-events: auto;
   }
 
-  /* ── Slide header stripe ── */
-  .slide-label {
+  /* ── Slide header bar ── */
+  .s-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 48px 18px;
+    border-bottom: 1px solid #1E2D46;
+    flex-shrink: 0;
+  }
+  .s-section {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 36px;
+    color: #5580AA;
   }
+  .s-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: #3A4E68;
+    letter-spacing: 0.06em;
+  }
+
+  /* ── Slide body ── */
+  .s-body {
+    flex: 1;
+    padding: 36px 48px 32px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Accent line under title ── */
+  .s-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+    color: #E8EFF8;
+    line-height: 1.15;
+    margin-bottom: 6px;
+  }
+  .s-rule {
+    width: 48px;
+    height: 3px;
+    background: #4D9FFF;
+    border-radius: 2px;
+    margin-bottom: 28px;
+    flex-shrink: 0;
+  }
+  .s-rule.orange { background: #F0923A; }
 
   /* ── Typography ── */
-  h1 {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: clamp(28px, 4vw, 48px);
-    font-weight: 600;
-    line-height: 1.15;
-    text-wrap: balance;
-    color: var(--text);
-  }
-  h2 {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: clamp(20px, 2.5vw, 32px);
-    font-weight: 600;
-    line-height: 1.2;
-    text-wrap: balance;
-    color: var(--text);
-    margin-bottom: 28px;
-  }
-  h3 {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    color: var(--muted);
-    margin-bottom: 10px;
-  }
-  p { color: var(--text); max-width: 68ch; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  .blue  { color: #4D9FFF; }
+  .orange { color: #F0923A; }
+  .muted { color: #6A84A4; }
+  .dim   { color: #8FA8C4; }
 
-  .accent-blue  { color: var(--blue); }
-  .accent-orange { color: var(--orange); }
+  /* ── Two-col ── */
+  .cols { display: grid; gap: 24px; flex: 1; }
+  .cols-2 { grid-template-columns: 1fr 1fr; }
+  .cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .col { display: flex; flex-direction: column; gap: 14px; }
 
-  /* ── Nav ── */
-  #nav {
+  /* ── Section label inside body ── */
+  .label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #5580AA;
+    margin-bottom: 6px;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: #131E30;
+    border: 1px solid #1E2D46;
+    border-radius: 6px;
+    padding: 18px 20px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #5580AA;
+    margin-bottom: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* ── Stat ── */
+  .stat-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 44px;
+    font-weight: 600;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: #4D9FFF;
+  }
+  .stat-num.orange { color: #F0923A; }
+  .stat-num.muted  { color: #3A4E68; }
+  .stat-lbl { font-size: 12px; color: #5580AA; margin-top: 4px; }
+
+  /* ── Pipeline ── */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: nowrap;
+    margin: 8px 0 20px;
+  }
+  .pipe-step {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 8px 12px;
+    background: #101928;
+    border: 1px solid #1E2D46;
+    border-radius: 4px;
+    color: #8FA8C4;
+    line-height: 1.4;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .pipe-step.hl { border-color: #F0923A; color: #F0923A; }
+  .pipe-arrow { font-size: 12px; color: #2A3D55; padding: 0 6px; flex-shrink: 0; }
+
+  /* ── Answer box ── */
+  .answer {
+    background: #101928;
+    border-left: 3px solid #4D9FFF;
+    padding: 12px 16px;
+    border-radius: 0 4px 4px 0;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #C4D4E8;
+    flex: 1;
+  }
+  .answer.orange { border-left-color: #F0923A; }
+
+  /* ── Timestamp chip ── */
+  .ts {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 7px;
+    background: #131E30;
+    border: 1px solid #F0923A;
+    border-radius: 3px;
+    color: #F0923A;
+    margin: 0 2px;
+  }
+
+  /* ── Bullets ── */
+  .bullets { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .bullets li { display: flex; gap: 10px; font-size: 14px; line-height: 1.5; color: #C4D4E8; }
+  .bullets li::before { content: '›'; font-family: 'IBM Plex Mono', monospace; color: #4D9FFF; flex-shrink: 0; font-size: 16px; line-height: 1.3; }
+  .bullets.orange li::before { color: #F0923A; }
+  .bullets.muted  li::before { color: #3A5070; }
+
+  /* ── Table ── */
+  .cmp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .cmp-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    text-align: left;
+    border-bottom: 1px solid #1E2D46;
+    color: #5580AA;
+  }
+  .cmp-table td { padding: 9px 14px; border-bottom: 1px solid #141F30; line-height: 1.4; color: #8FA8C4; }
+  .cmp-table tr:last-child td { border-bottom: none; }
+  .cmp-table .td-dim { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #4A637E; }
+  .cmp-table .td-b { color: #4D9FFF; }
+  .cmp-table .td-o { color: #F0923A; }
+
+  /* ── Finding block ── */
+  .finding { display: flex; gap: 14px; padding: 14px 16px; background: #101928; border: 1px solid #1E2D46; border-radius: 5px; }
+  .finding-id { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600; color: #3A5070; flex-shrink: 0; padding-top: 1px; width: 20px; }
+  .finding-text { font-size: 13px; line-height: 1.5; color: #C4D4E8; }
+
+  /* ── TITLE SLIDE ── */
+  .slide-cover { justify-content: center; }
+  .cover-inner { padding: 0 80px; display: flex; flex-direction: column; gap: 0; }
+  .cover-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #4D9FFF;
+    margin-bottom: 20px;
+  }
+  .cover-h1 {
+    font-size: 58px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #E8EFF8;
+    margin-bottom: 6px;
+  }
+  .cover-vs {
+    color: #F0923A;
+  }
+  .cover-sub {
+    font-size: 17px;
+    color: #5580AA;
+    margin-top: 14px;
+    margin-bottom: 36px;
+    line-height: 1.5;
+  }
+  .pill-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid #1E2D46;
+    color: #4A637E;
+  }
+
+  /* ── Nav arrows ── */
+  #nav-prev, #nav-next {
+    position: fixed;
+    bottom: 24px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #2A3D55;
+    font-size: 28px;
+    line-height: 1;
+    padding: 8px 16px;
+    transition: color 0.15s;
+    z-index: 100;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  #nav-prev { left: calc(50% - 80px); }
+  #nav-next { right: calc(50% - 80px); }
+  #nav-prev:hover, #nav-next:hover { color: #4D9FFF; }
+  #nav-prev:disabled, #nav-next:disabled { opacity: 0.2; cursor: default; }
+
+  /* ── Bottom progress dots ── */
+  #dots {
     position: fixed;
     bottom: 28px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    align-items: center;
-    gap: 16px;
+    gap: 6px;
     z-index: 100;
   }
-  #nav button {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 13px;
-    padding: 8px 18px;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: background 0.15s;
+  .dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #1E2D46;
+    transition: background 0.2s;
   }
-  #nav button:hover { background: var(--border); }
-  #nav button:disabled { opacity: 0.3; cursor: default; }
-  #counter {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    color: var(--muted);
-    min-width: 48px;
-    text-align: center;
-  }
+  .dot.on { background: #4D9FFF; }
 
-  /* ── Progress bar ── */
-  #progress {
-    position: fixed;
-    top: 0; left: 0;
-    height: 2px;
-    background: var(--blue);
-    transition: width 0.25s ease;
-    z-index: 200;
+  /* ── Decorative corner accent on title ── */
+  .corner-accent {
+    position: absolute;
+    top: 0; right: 0;
+    width: 320px; height: 320px;
+    background: radial-gradient(circle at top right, rgba(77,159,255,0.07) 0%, transparent 70%);
+    pointer-events: none;
   }
-
-  /* ── Slide 1: Title ── */
-  .slide-title {
-    justify-content: center;
-  }
-  .slide-title .eyebrow {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    letter-spacing: 0.1em;
-    color: var(--blue);
-    text-transform: uppercase;
-    margin-bottom: 20px;
-  }
-  .slide-title h1 {
-    font-size: clamp(32px, 5vw, 58px);
-    margin-bottom: 16px;
-  }
-  .slide-title .subtitle {
-    font-size: 17px;
-    color: var(--muted);
-    margin-bottom: 40px;
-  }
-  .pill-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  .pill {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    padding: 5px 14px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    color: var(--muted);
-  }
-
-  /* ── Two-column layout ── */
-  .cols {
-    display: grid;
-    gap: 28px;
-  }
-  .cols-2 { grid-template-columns: 1fr 1fr; }
-  .cols-3 { grid-template-columns: 1fr 1fr 1fr; }
-
-  /* ── Card ── */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 24px;
-  }
-
-  /* ── Pipeline diagram ── */
-  .pipeline {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0;
-    margin: 20px 0;
-  }
-  .pipe-step {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    padding: 8px 14px;
-    background: var(--code-bg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text);
-    white-space: nowrap;
-  }
-  .pipe-arrow {
-    font-size: 14px;
-    color: var(--muted);
-    padding: 0 8px;
-  }
-
-  /* ── Quote / answer box ── */
-  .answer-box {
-    background: var(--code-bg);
-    border-left: 3px solid var(--blue);
-    padding: 16px 20px;
-    border-radius: 0 4px 4px 0;
-    font-size: 13.5px;
-    line-height: 1.65;
-    color: var(--text);
-  }
-  .answer-box.moment { border-left-color: var(--orange); }
-
-  /* ── Timestamp chip ── */
-  .ts-chip {
-    display: inline-block;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    padding: 2px 8px;
-    background: var(--surface);
-    border: 1px solid var(--orange);
-    border-radius: 3px;
-    color: var(--orange);
-    margin-right: 4px;
-  }
-
-  /* ── Comparison table ── */
-  .cmp-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13.5px;
-    margin-top: 8px;
-  }
-  .cmp-table th {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    padding: 10px 16px;
-    text-align: left;
-    border-bottom: 1px solid var(--border);
-    color: var(--muted);
-  }
-  .cmp-table td {
-    padding: 11px 16px;
-    border-bottom: 1px solid var(--border);
-    vertical-align: top;
-    line-height: 1.5;
-  }
-  .cmp-table tr:last-child td { border-bottom: none; }
-  .cmp-table .dim { color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
-  .cmp-table .val-b { color: var(--blue); }
-  .cmp-table .val-o { color: var(--orange); }
-
-  /* ── Stats row ── */
-  .stats {
-    display: flex;
-    gap: 24px;
-    flex-wrap: wrap;
-    margin: 20px 0;
-  }
-  .stat {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .stat-num {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 32px;
-    font-weight: 600;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-  }
-  .stat-label {
-    font-size: 12px;
-    color: var(--muted);
-  }
-
-  /* ── Bullet list ── */
-  .bullets {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 8px;
-  }
-  .bullets li {
-    display: flex;
-    gap: 12px;
-    font-size: 14.5px;
-    line-height: 1.55;
-  }
-  .bullets li::before {
-    content: '→';
-    font-family: 'IBM Plex Mono', monospace;
-    color: var(--blue);
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-  .bullets.orange li::before { color: var(--orange); }
-  .bullets.muted li::before { color: var(--muted); }
-
-  /* ── Finding cards ── */
-  .finding {
-    display: flex;
-    gap: 16px;
-    padding: 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-  }
-  .finding-icon {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--muted);
-    flex-shrink: 0;
-    padding-top: 2px;
-    min-width: 28px;
-  }
-  .finding-text { font-size: 14px; line-height: 1.55; }
-
-  /* ── Responsive ── */
-  @media (max-width: 680px) {
-    .slide { padding: 32px 20px 80px; }
-    .cols-2, .cols-3 { grid-template-columns: 1fr; }
-    .pipeline { flex-direction: column; align-items: flex-start; }
-    .pipe-arrow { transform: rotate(90deg); }
+  .corner-accent-b {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 240px; height: 240px;
+    background: radial-gradient(circle at bottom left, rgba(240,146,58,0.05) 0%, transparent 70%);
+    pointer-events: none;
   }
 </style>
 
-<div id="progress"></div>
+<!-- ─────────────── Stage ─────────────── -->
+<div id="stage">
 
-<div id="deck">
-
-  <!-- ─── Slide 1: Title ─── -->
-  <section class="slide slide-title active" data-index="0">
-    <div class="eyebrow">Assignment 3 — FDE</div>
-    <h1>Semantic Search RAG<br><span class="accent-orange">vs</span> Moment RAG</h1>
-    <p class="subtitle">A two-stage retrieval-augmented generation pipeline<br>built on a YouTube video transcript.</p>
-    <div class="pill-row">
-      <span class="pill">youtube-transcript-api</span>
-      <span class="pill">FAISS · cosine search</span>
-      <span class="pill">text-embedding-3-small</span>
-      <span class="pill">gpt-4o-mini via OpenRouter</span>
-      <span class="pill">tiktoken · cl100k_base</span>
+  <!-- Slide 1: Cover -->
+  <section class="slide slide-cover active">
+    <div class="corner-accent"></div>
+    <div class="corner-accent-b"></div>
+    <div class="s-head">
+      <span class="s-section">Assignment 3 — FDE</span>
+      <span class="s-num">01 / 09</span>
+    </div>
+    <div class="s-body" style="justify-content:center">
+      <div class="cover-inner">
+        <div class="cover-eyebrow">Retrieval-Augmented Generation</div>
+        <div class="cover-h1">Semantic Search RAG<br><span class="cover-vs">vs</span> Moment RAG</div>
+        <div class="cover-sub">A two-stage RAG pipeline built on a YouTube video transcript.<br>Comparing fixed-chunk retrieval with timestamp-aware moment retrieval.</div>
+        <div class="pill-row">
+          <span class="pill">youtube-transcript-api</span>
+          <span class="pill">FAISS · IndexFlatIP</span>
+          <span class="pill">text-embedding-3-small</span>
+          <span class="pill">gpt-4o-mini</span>
+          <span class="pill">tiktoken · cl100k_base</span>
+        </div>
+      </div>
     </div>
   </section>
 
-  <!-- ─── Slide 2: Video ─── -->
-  <section class="slide" data-index="1">
-    <div class="slide-label">Selected video</div>
-    <h2>What video was chosen?</h2>
-    <div class="cols cols-2" style="align-items:start">
-      <div>
-        <div class="card">
-          <h3>Video</h3>
-          <p style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--blue);margin-bottom:12px">youtube.com/watch?v=U8YI5S_WAY4</p>
-          <p style="font-size:14px;color:var(--muted)">"Tools of the Trade" — an AI/LLM tooling walkthrough covering agents, planning, and AI workflows for educators.</p>
-        </div>
-        <div style="margin-top:20px">
-          <div class="stats">
-            <div class="stat">
-              <span class="stat-num accent-blue">107</span>
-              <span class="stat-label">raw transcript segments</span>
+  <!-- Slide 2: Video -->
+  <section class="slide">
+    <div class="s-head">
+      <span class="s-section">Selected Video</span>
+      <span class="s-num">02 / 09</span>
+    </div>
+    <div class="s-body">
+      <div class="s-title">What video was chosen?</div>
+      <div class="s-rule"></div>
+      <div class="cols cols-2" style="flex:1;align-items:start">
+        <div class="col">
+          <div class="card">
+            <div class="card-title">Video</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#4D9FFF;margin-bottom:10px">youtube.com/watch?v=U8YI5S_WAY4</div>
+            <div style="font-size:13px;color:#6A84A4;line-height:1.55">"Tools of the Trade" — an AI/LLM tooling walkthrough covering agents, planning, and AI workflows for educators.</div>
+          </div>
+          <div style="display:flex;gap:32px;margin-top:4px">
+            <div>
+              <div class="stat-num">107</div>
+              <div class="stat-lbl">raw transcript segments</div>
             </div>
-            <div class="stat">
-              <span class="stat-num accent-blue">~8 min</span>
-              <span class="stat-label">video duration</span>
+            <div>
+              <div class="stat-num">~8<span style="font-size:28px">min</span></div>
+              <div class="stat-lbl">video duration</div>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="label">Why this video?</div>
+          <ul class="bullets">
+            <li>Short enough to fit one FAISS index without truncation</li>
+            <li>English auto-captions available — no Whisper needed</li>
+            <li>Natural speaker pauses create clean moment boundaries</li>
+            <li>Topic (AI agents &amp; LLMs) directly relevant to the course</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 3: Moment RAG codebase -->
+  <section class="slide">
+    <div class="s-head">
+      <span class="s-section">Understanding Moment RAG</span>
+      <span class="s-num">03 / 09</span>
+    </div>
+    <div class="s-body">
+      <div class="s-title">How the reference architecture works</div>
+      <div class="s-rule orange"></div>
+      <div class="cols cols-2" style="flex:1;align-items:start">
+        <div class="col">
+          <div class="label">Core idea</div>
+          <p style="font-size:13.5px;color:#8FA8C4;line-height:1.6">Instead of fixed token windows, Moment RAG identifies semantically meaningful <em>moments</em> — contiguous spans anchored to real timestamps — and treats each one as the retrieval unit.</p>
+          <div class="label" style="margin-top:8px">Key differences from baseline</div>
+          <ul class="bullets orange">
+            <li>Chunks carry <strong style="color:#F0923A">start / end time</strong> metadata</li>
+            <li>Boundaries follow <strong style="color:#F0923A">natural speech pauses</strong>, not token counts</li>
+            <li>LLM can cite <strong style="color:#F0923A">[M:SS] timestamps</strong> in its answer</li>
+            <li>Users can seek directly to the cited video position</li>
+          </ul>
+        </div>
+        <div class="col">
+          <div class="label">Reference repo — 4-stage pipeline</div>
+          <div class="card" style="flex:1">
+            <div style="display:flex;flex-direction:column;gap:14px;font-size:13px">
+              <div><span style="color:#E8EFF8;font-weight:600">1. Transcript ingestion</span><br><span style="color:#5580AA">Segments fetched with timestamps preserved</span></div>
+              <div><span style="color:#E8EFF8;font-weight:600">2. Moment segmentation</span><br><span style="color:#5580AA">Silence gaps or group-size thresholds trigger a new moment</span></div>
+              <div><span style="color:#E8EFF8;font-weight:600">3. Embedding + indexing</span><br><span style="color:#5580AA">Each moment embedded as one vector</span></div>
+              <div><span style="color:#E8EFF8;font-weight:600">4. Retrieval + generation</span><br><span style="color:#5580AA">Context injected with [M:SS] prefix; LLM cites timestamps</span></div>
             </div>
           </div>
         </div>
       </div>
-      <div>
-        <h3 style="margin-bottom:14px">Why this video?</h3>
-        <ul class="bullets">
-          <li>Short enough to fit in one FAISS index without truncation</li>
-          <li>English auto-captions available — no Whisper needed</li>
-          <li>Natural speaker pauses create clean moment boundaries</li>
-          <li>Topic (AI agents &amp; LLMs) is directly relevant to the course</li>
-        </ul>
-      </div>
     </div>
   </section>
 
-  <!-- ─── Slide 3: Moment RAG codebase ─── -->
-  <section class="slide" data-index="2">
-    <div class="slide-label">Understanding Moment RAG</div>
-    <h2>How the reference architecture works</h2>
-    <div class="cols cols-2" style="align-items:start;gap:24px">
-      <div>
-        <h3>Core idea</h3>
-        <p style="font-size:14px;margin-bottom:16px">Instead of splitting a transcript into fixed token windows, Moment RAG identifies semantically meaningful <em>moments</em> — contiguous spans anchored to real timestamps — and treats each one as a retrieval unit.</p>
-        <h3 style="margin-top:8px">Key difference from baseline</h3>
-        <ul class="bullets" style="margin-top:8px">
-          <li>Chunks carry <span class="accent-orange">start / end time</span> metadata</li>
-          <li>Boundaries follow <span class="accent-orange">natural speech pauses</span>, not token counts</li>
-          <li>The LLM can cite <span class="accent-orange">[M:SS] timestamps</span> in its answer</li>
-          <li>Users can seek directly to the cited video position</li>
-        </ul>
+  <!-- Slide 4: Part 1 architecture -->
+  <section class="slide">
+    <div class="s-head">
+      <span class="s-section">Part 1 — Baseline Semantic Search RAG</span>
+      <span class="s-num">04 / 09</span>
+    </div>
+    <div class="s-body">
+      <div class="s-title">Architecture</div>
+      <div class="s-rule"></div>
+      <div class="pipeline">
+        <span class="pipe-step">107 segments</span><span class="pipe-arrow">→</span>
+        <span class="pipe-step">join all text</span><span class="pipe-arrow">→</span>
+        <span class="pipe-step">300-token chunks<br><span style="color:#3A5070;font-size:10px">50-token overlap</span></span><span class="pipe-arrow">→</span>
+        <span class="pipe-step">embed(chunks)<br><span style="color:#3A5070;font-size:10px">text-embedding-3-small</span></span><span class="pipe-arrow">→</span>
+        <span class="pipe-step">FAISS IndexFlatIP<br><span style="color:#3A5070;font-size:10px">cosine via L2 norm</span></span><span class="pipe-arrow">→</span>
+        <span class="pipe-step">LLM answer</span>
       </div>
-      <div>
-        <h3>Reference repo architecture</h3>
-        <div class="card" style="margin-bottom:12px">
-          <p style="font-size:13px;color:var(--muted);line-height:1.7">
-            <strong style="color:var(--text)">1. Transcript ingestion</strong><br>
-            Segments fetched with timestamps preserved<br><br>
-            <strong style="color:var(--text)">2. Moment segmentation</strong><br>
-            Silence gaps or group-size thresholds trigger new moment<br><br>
-            <strong style="color:var(--text)">3. Embedding + indexing</strong><br>
-            Each moment embedded as one vector<br><br>
-            <strong style="color:var(--text)">4. Retrieval + generation</strong><br>
-            Context injected with [M:SS] prefix; LLM cites timestamps
-          </p>
+      <div class="cols cols-3" style="margin-bottom:18px">
+        <div class="card" style="text-align:center">
+          <div class="stat-num">4</div>
+          <div class="stat-lbl">chunks indexed</div>
+        </div>
+        <div class="card" style="text-align:center">
+          <div class="stat-num muted">0</div>
+          <div class="stat-lbl">timestamps preserved</div>
+        </div>
+        <div class="card" style="text-align:center">
+          <div class="stat-num" style="font-size:36px">1536</div>
+          <div class="stat-lbl">embedding dimensions</div>
         </div>
       </div>
+      <div class="card">
+        <div class="card-title">Known limitation</div>
+        <div style="font-size:13px;color:#6A84A4;line-height:1.55">Fixed 300-token slices may cut a sentence mid-thought. With only 107 short segments the entire transcript is ~1 100 tokens — yielding 4 chunks, each covering ~2 minutes with no spatial precision.</div>
+      </div>
     </div>
   </section>
 
-  <!-- ─── Slide 4: Part 1 architecture ─── -->
-  <section class="slide" data-index="3">
-    <div class="slide-label">Part 1 — Baseline Semantic Search RAG</div>
-    <h2>Architecture</h2>
-    <div class="pipeline">
-      <span class="pipe-step">107 segments</span><span class="pipe-arrow">→</span>
-      <span class="pipe-step">join all text</span><span class="pipe-arrow">→</span>
-      <span class="pipe-step">300-token chunks<br><small style="color:var(--muted)">50-token overlap</small></span><span class="pipe-arrow">→</span>
-      <span class="pipe-step">embed(chunks)<br><small style="color:var(--muted)">text-embedding-3-small</small></span><span class="pipe-arrow">→</span>
-      <span class="pipe-step">FAISS IndexFlatIP<br><small style="color:var(--muted)">cosine via L2 norm</small></span><span class="pipe-arrow">→</span>
-      <span class="pipe-step">LLM answer</span>
+  <!-- Slide 5: Part 1 results -->
+  <section class="slide">
+    <div class="s-head">
+      <span class="s-section">Part 1 — Baseline Results</span>
+      <span class="s-num">05 / 09</span>
     </div>
-    <div class="cols cols-3" style="margin-top:12px">
-      <div class="card">
-        <div class="stat-num accent-blue" style="font-size:40px">4</div>
-        <div class="stat-label" style="margin-top:4px">chunks indexed</div>
-        <p style="font-size:13px;color:var(--muted);margin-top:8px">All transcript text flattened, then sliced at fixed token boundaries</p>
-      </div>
-      <div class="card">
-        <div class="stat-num" style="font-size:40px;color:var(--muted)">0</div>
-        <div class="stat-label" style="margin-top:4px">timestamps preserved</div>
-        <p style="font-size:13px;color:var(--muted);margin-top:8px">No metadata attached — plain text vectors only</p>
-      </div>
-      <div class="card">
-        <div class="stat-num accent-blue" style="font-size:40px">1536</div>
-        <div class="stat-label" style="margin-top:4px">embedding dimensions</div>
-        <p style="font-size:13px;color:var(--muted);margin-top:8px">OpenAI text-embedding-3-small, L2-normalised for cosine</p>
-      </div>
-    </div>
-    <div style="margin-top:16px">
-      <h3 style="margin-bottom:8px">Known limitation</h3>
-      <p style="font-size:13.5px;color:var(--muted)">Fixed 300-token slices may cut a sentence mid-thought. With only 107 short transcript segments the entire text tokenizes to ~1 100 tokens — yielding just 4 chunks, each covering ~2 minutes of video with no spatial precision.</p>
-    </div>
-  </section>
-
-  <!-- ─── Slide 5: Part 1 results ─── -->
-  <section class="slide" data-index="4">
-    <div class="slide-label">Part 1 — Baseline results</div>
-    <h2>Sample query results</h2>
-    <div class="cols cols-2" style="gap:20px">
-      <div>
-        <h3 style="color:var(--blue);margin-bottom:8px">Q1 — Transformer &amp; attention</h3>
-        <div class="answer-box">
-          A transformer is a neural network architecture introduced in "Attention is All You Need" (Vaswani et al., 2017). The self-attention mechanism computes Query, Key, and Value vectors per token, scores relevance via dot-product, applies softmax, and returns a weighted sum of values…
+    <div class="s-body">
+      <div class="s-title">Sample query results</div>
+      <div class="s-rule"></div>
+      <div class="cols cols-2" style="flex:1;gap:20px">
+        <div class="col">
+          <div class="label" style="color:#4D9FFF">Q1 — Transformer &amp; attention</div>
+          <div class="answer" style="flex:none">A transformer is a neural network introduced in "Attention is All You Need" (Vaswani et al., 2017). Self-attention computes Q, K, V vectors per token, scores relevance via dot-product, applies softmax, and returns a weighted sum of values…</div>
+          <div style="font-size:11.5px;color:#4A637E">⚠ Correct but sourced from model prior knowledge — video does not cover this topic</div>
+          <div class="label" style="color:#4D9FFF;margin-top:4px">Q2 — LLM training data</div>
+          <div class="answer" style="flex:none">LLMs are trained via unsupervised learning on large text corpora: books, articles, websites. Objective is next-token prediction, adjusting parameters to model language distributions…</div>
+          <div style="font-size:11.5px;color:#4A637E">⚠ Same issue — answer plausible but hallucinated from parametric knowledge</div>
         </div>
-        <p style="font-size:12px;color:var(--muted);margin-top:8px">⚠ Answer correct but sourced from model prior knowledge — video does not cover this topic.</p>
-      </div>
-      <div>
-        <h3 style="color:var(--blue);margin-bottom:8px">Q2 — LLM training data</h3>
-        <div class="answer-box">
-          LLMs are trained via unsupervised learning on large text corpora: books, articles, websites. The objective is next-token prediction across millions of sequences, gradually adjusting parameters to model language distributions…
-        </div>
-        <p style="font-size:12px;color:var(--muted);margin-top:8px">⚠ Same issue — LLM "hallucinating" relevant but out-of-context answers.</p>
-      </div>
-    </div>
-    <div style="margin-top:16px">
-      <h3 style="color:var(--blue);margin-bottom:8px">Q3 — Prompt injection risks</h3>
-      <div class="answer-box" style="font-size:13px">
-        "The context provided does not explicitly mention security risks… However, based on general knowledge: 1. Prompt Injection — a user manipulates input to produce unintended output. 2. Data Leakage…"
-      </div>
-      <p style="font-size:12px;color:var(--muted);margin-top:8px">Model correctly flags context mismatch but falls back to parametric knowledge. No citation possible.</p>
-    </div>
-  </section>
-
-  <!-- ─── Slide 6: Part 2 architecture ─── -->
-  <section class="slide" data-index="5">
-    <div class="slide-label">Part 2 — Moment RAG</div>
-    <h2>Architecture</h2>
-    <div class="pipeline">
-      <span class="pipe-step">107 segments</span><span class="pipe-arrow">→</span>
-      <span class="pipe-step">group by pause &gt; 3s<br><small style="color:var(--muted)">or ≥ 10 segs</small></span><span class="pipe-arrow">→</span>
-      <span class="pipe-step" style="border-color:var(--orange);color:var(--orange)">moment<br><small>{text, start, end}</small></span><span class="pipe-arrow">→</span>
-      <span class="pipe-step">embed(moments)<br><small style="color:var(--muted)">same model</small></span><span class="pipe-arrow">→</span>
-      <span class="pipe-step">FAISS IndexFlatIP</span><span class="pipe-arrow">→</span>
-      <span class="pipe-step" style="border-color:var(--orange)">LLM answer<br><small style="color:var(--orange)">cites [M:SS]</small></span>
-    </div>
-    <div class="cols cols-3" style="margin-top:12px">
-      <div class="card">
-        <div class="stat-num accent-orange" style="font-size:40px">11</div>
-        <div class="stat-label" style="margin-top:4px">moments indexed</div>
-        <p style="font-size:13px;color:var(--muted);margin-top:8px">Grouped by natural silence gaps (&gt; 3 s) or max 10 segments</p>
-      </div>
-      <div class="card">
-        <div class="stat-num accent-orange" style="font-size:40px">✓</div>
-        <div class="stat-label" style="margin-top:4px">timestamps preserved</div>
-        <p style="font-size:13px;color:var(--muted);margin-top:8px">Each moment stores start_sec, end_sec, and formatted [M:SS]</p>
-      </div>
-      <div class="card">
-        <div class="stat-num accent-orange" style="font-size:40px">~45s</div>
-        <div class="stat-label" style="margin-top:4px">avg moment span</div>
-        <p style="font-size:13px;color:var(--muted);margin-top:8px">~8 min video ÷ 11 moments = finer spatial resolution than 4 chunks</p>
-      </div>
-    </div>
-    <div style="margin-top:16px">
-      <h3 style="margin-bottom:6px">Prompt template addition</h3>
-      <p style="font-size:13.5px;color:var(--muted)">Each context line prefixed with <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--orange)">[M:SS]</span>. Model instructed to cite timestamps in the answer.</p>
-    </div>
-  </section>
-
-  <!-- ─── Slide 7: Part 2 results ─── -->
-  <section class="slide" data-index="6">
-    <div class="slide-label">Part 2 — Moment RAG results</div>
-    <h2>Sample query results</h2>
-    <div class="cols cols-2" style="gap:20px">
-      <div>
-        <h3 style="color:var(--orange);margin-bottom:8px">Q2 — LLM training data</h3>
-        <div class="answer-box moment" style="font-size:13px">
-          "…it does mention aspects of LLM functionality — at <span class="ts-chip">2:52</span> the dynamic nature of AI agent responses is highlighted, while <span class="ts-chip">2:05</span> emphasises their constant availability and back-and-forth dialogue…"
-        </div>
-        <p style="font-size:12px;color:var(--muted);margin-top:8px">Moments retrieved: <span class="ts-chip">3:13</span> <span class="ts-chip">2:52</span> <span class="ts-chip">0:00</span> <span class="ts-chip">2:05</span></p>
-      </div>
-      <div>
-        <h3 style="color:var(--orange);margin-bottom:8px">Q3 — Prompt injection</h3>
-        <div class="answer-box moment" style="font-size:13px">
-          "…the context does not explicitly cover prompt injection. However, the discussion at <span class="ts-chip">3:13</span> on how LLMs generate plans from user prompts is relevant — malicious inputs could manipulate those responses…"
-        </div>
-        <p style="font-size:12px;color:var(--muted);margin-top:8px">Moments retrieved: <span class="ts-chip">3:13</span> <span class="ts-chip">2:05</span> <span class="ts-chip">1:20</span> <span class="ts-chip">2:28</span></p>
-      </div>
-    </div>
-    <div style="margin-top:16px">
-      <h3 style="margin-bottom:6px">Key observation</h3>
-      <p style="font-size:13.5px;color:var(--muted)">Both systems surface the same limitation (video doesn't cover the queries directly), but Moment RAG <strong style="color:var(--text)">grounds the answer in a specific video location</strong> — the user can verify the claim at <span class="ts-chip">3:13</span> rather than accepting an opaque response.</p>
-    </div>
-  </section>
-
-  <!-- ─── Slide 8: Comparison ─── -->
-  <section class="slide" data-index="7">
-    <div class="slide-label">Comparison</div>
-    <h2>Baseline vs Moment RAG</h2>
-    <table class="cmp-table">
-      <thead>
-        <tr>
-          <th>Dimension</th>
-          <th style="color:var(--blue)">Baseline RAG</th>
-          <th style="color:var(--orange)">Moment RAG</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td class="dim">Chunking</td>
-          <td class="val-b">Fixed ~300 tokens, 50-token overlap</td>
-          <td class="val-o">Natural pause gaps &gt; 3 s or ≥ 10 segments</td>
-        </tr>
-        <tr>
-          <td class="dim">Index size</td>
-          <td class="val-b">4 vectors</td>
-          <td class="val-o">11 vectors — 2.75× finer granularity</td>
-        </tr>
-        <tr>
-          <td class="dim">Metadata</td>
-          <td class="val-b">Plain text only</td>
-          <td class="val-o">Text + start_sec + end_sec + [M:SS]</td>
-        </tr>
-        <tr>
-          <td class="dim">Timestamp citation</td>
-          <td>None</td>
-          <td class="val-o">Yes — model cites [M:SS] in answer</td>
-        </tr>
-        <tr>
-          <td class="dim">Traceability</td>
-          <td>Zero</td>
-          <td class="val-o">High — user can seek to exact moment</td>
-        </tr>
-        <tr>
-          <td class="dim">Fragmentation risk</td>
-          <td>May cut mid-sentence at token boundary</td>
-          <td class="val-o">Respects natural speech pauses</td>
-        </tr>
-        <tr>
-          <td class="dim">API cost</td>
-          <td>Equal</td>
-          <td>Equal — same model, same calls</td>
-        </tr>
-      </tbody>
-    </table>
-  </section>
-
-  <!-- ─── Slide 9: Findings ─── -->
-  <section class="slide" data-index="8">
-    <div class="slide-label">Findings &amp; reflections</div>
-    <h2>Key findings, limitations &amp; improvements</h2>
-    <div class="cols cols-2" style="gap:20px;align-items:start">
-      <div>
-        <h3 style="margin-bottom:12px">Findings</h3>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <div class="finding">
-            <span class="finding-icon">F1</span>
-            <span class="finding-text">Moment RAG produces <strong>verifiable, grounded answers</strong>. When the source lacks the answer, the timestamp lets the user confirm — baseline RAG offers no such check.</span>
-          </div>
-          <div class="finding">
-            <span class="finding-icon">F2</span>
-            <span class="finding-text">Fixed-chunk retrieval on a short transcript yields only 4 chunks. A query retrieving top-4 gets <em>the entire transcript</em> — providing no filtering benefit.</span>
-          </div>
-          <div class="finding">
-            <span class="finding-icon">F3</span>
-            <span class="finding-text">Both systems produce parametric (out-of-context) answers for queries the video doesn't cover — the key difference is Moment RAG is <strong>explicit about which segment it used</strong>.</span>
+        <div class="col">
+          <div class="label" style="color:#4D9FFF">Q3 — Prompt injection risks</div>
+          <div class="answer" style="flex:1">"The context provided does not explicitly mention security risks… However, based on general knowledge: 1. Prompt Injection — a user manipulates input to produce unintended output. 2. Data Leakage…"</div>
+          <div style="font-size:11.5px;color:#4A637E">Model correctly flags context mismatch but falls back to parametric knowledge. No citation possible.</div>
+          <div class="card" style="margin-top:auto">
+            <div class="card-title">Pattern</div>
+            <div style="font-size:13px;color:#6A84A4;line-height:1.5">All three answers draw on model weights, not the transcript. There is no way to verify which part of the video the answer came from.</div>
           </div>
         </div>
       </div>
-      <div>
-        <h3 style="margin-bottom:12px">Limitations</h3>
-        <ul class="bullets muted" style="margin-bottom:20px">
-          <li>Long moments dilute embedding specificity</li>
-          <li>No cross-encoder reranker (original Moment RAG uses one)</li>
-          <li>Text-only — no visual branch (CLIP over frames)</li>
-          <li>8-minute video is too short to stress-test retrieval recall</li>
-        </ul>
-        <h3 style="margin-bottom:12px">Possible improvements</h3>
-        <ul class="bullets orange">
-          <li>Add <code style="font-family:'IBM Plex Mono',monospace;font-size:12px">cross-encoder/ms-marco-MiniLM-L-6-v2</code> reranker</li>
-          <li>Use Whisper for videos without auto-captions</li>
-          <li>Multi-source: PDF slides + transcript (ARGUS-style)</li>
-        </ul>
+    </div>
+  </section>
+
+  <!-- Slide 6: Part 2 architecture -->
+  <section class="slide">
+    <div class="s-head">
+      <span class="s-section">Part 2 — Moment RAG</span>
+      <span class="s-num">06 / 09</span>
+    </div>
+    <div class="s-body">
+      <div class="s-title">Architecture</div>
+      <div class="s-rule orange"></div>
+      <div class="pipeline">
+        <span class="pipe-step">107 segments</span><span class="pipe-arrow">→</span>
+        <span class="pipe-step">group by pause &gt; 3s<br><span style="color:#3A5070;font-size:10px">or ≥ 10 segs</span></span><span class="pipe-arrow">→</span>
+        <span class="pipe-step hl">moment<br><span style="font-size:10px">{text, start, end}</span></span><span class="pipe-arrow">→</span>
+        <span class="pipe-step">embed(moments)<br><span style="color:#3A5070;font-size:10px">same model</span></span><span class="pipe-arrow">→</span>
+        <span class="pipe-step">FAISS IndexFlatIP</span><span class="pipe-arrow">→</span>
+        <span class="pipe-step hl">LLM answer<br><span style="font-size:10px">cites [M:SS]</span></span>
+      </div>
+      <div class="cols cols-3" style="margin-bottom:18px">
+        <div class="card" style="text-align:center">
+          <div class="stat-num orange">11</div>
+          <div class="stat-lbl">moments indexed</div>
+        </div>
+        <div class="card" style="text-align:center">
+          <div class="stat-num orange" style="font-size:40px">✓</div>
+          <div class="stat-lbl">timestamps preserved</div>
+        </div>
+        <div class="card" style="text-align:center">
+          <div class="stat-num orange" style="font-size:38px">~45s</div>
+          <div class="stat-lbl">avg moment span</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Prompt template addition</div>
+        <div style="font-size:13px;color:#6A84A4;line-height:1.55">Each context line prefixed with <span class="mono" style="font-size:11px;color:#F0923A">[M:SS]</span>. Model instructed to cite timestamps in the answer — enabling the user to seek directly to the referenced moment.</div>
       </div>
     </div>
   </section>
 
-</div>
+  <!-- Slide 7: Part 2 results -->
+  <section class="slide">
+    <div class="s-head">
+      <span class="s-section">Part 2 — Moment RAG Results</span>
+      <span class="s-num">07 / 09</span>
+    </div>
+    <div class="s-body">
+      <div class="s-title">Sample query results</div>
+      <div class="s-rule orange"></div>
+      <div class="cols cols-2" style="flex:1;gap:20px">
+        <div class="col">
+          <div class="label" style="color:#F0923A">Q2 — LLM training data</div>
+          <div class="answer orange" style="flex:none">"…it does mention aspects of LLM functionality — at <span class="ts">2:52</span> the dynamic nature of agent responses is highlighted, while <span class="ts">2:05</span> emphasises their constant availability and back-and-forth dialogue…"</div>
+          <div style="font-size:11.5px;color:#4A637E">Moments retrieved: <span class="ts">3:13</span> <span class="ts">2:52</span> <span class="ts">0:00</span> <span class="ts">2:05</span></div>
+          <div class="label" style="color:#F0923A;margin-top:4px">Q3 — Prompt injection</div>
+          <div class="answer orange" style="flex:none">"…the discussion at <span class="ts">3:13</span> on how LLMs generate plans from user prompts is relevant — malicious inputs could manipulate those plan-generation responses…"</div>
+          <div style="font-size:11.5px;color:#4A637E">Moments retrieved: <span class="ts">3:13</span> <span class="ts">2:05</span> <span class="ts">1:20</span> <span class="ts">2:28</span></div>
+        </div>
+        <div class="col">
+          <div class="label">Key observation</div>
+          <div class="card" style="flex:1">
+            <div style="font-size:13.5px;color:#8FA8C4;line-height:1.65">Both systems hit the same limitation (video doesn't cover the queries directly), but Moment RAG <strong style="color:#E8EFF8">grounds the answer in a specific video position</strong>.<br><br>The user can verify the claim at <span class="ts">3:13</span> rather than accepting an opaque response from the baseline system.<br><br>Traceability is the core value-add — not a different answer, but a <strong style="color:#F0923A">verifiable</strong> one.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-<!-- ─── Navigation ─── -->
-<div id="nav">
-  <button id="btn-prev" disabled>← prev</button>
-  <span id="counter">1 / 9</span>
-  <button id="btn-next">next →</button>
-</div>
+  <!-- Slide 8: Comparison -->
+  <section class="slide">
+    <div class="s-head">
+      <span class="s-section">Comparison</span>
+      <span class="s-num">08 / 09</span>
+    </div>
+    <div class="s-body">
+      <div class="s-title">Baseline <span style="color:#3A5070">vs</span> Moment RAG</div>
+      <div class="s-rule"></div>
+      <table class="cmp-table">
+        <thead>
+          <tr>
+            <th style="width:160px">Dimension</th>
+            <th style="color:#4D9FFF">Baseline RAG</th>
+            <th style="color:#F0923A">Moment RAG</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="td-dim">Chunking</td>
+            <td class="td-b">Fixed ~300 tokens, 50-token overlap</td>
+            <td class="td-o">Natural pause gaps &gt; 3 s or ≥ 10 segments</td>
+          </tr>
+          <tr>
+            <td class="td-dim">Index size</td>
+            <td class="td-b">4 vectors</td>
+            <td class="td-o">11 vectors — 2.75× finer granularity</td>
+          </tr>
+          <tr>
+            <td class="td-dim">Metadata</td>
+            <td class="td-b">Plain text only</td>
+            <td class="td-o">Text + start_sec + end_sec + [M:SS]</td>
+          </tr>
+          <tr>
+            <td class="td-dim">Timestamp citation</td>
+            <td style="color:#3A5070">None</td>
+            <td class="td-o">Yes — model cites [M:SS] in answer</td>
+          </tr>
+          <tr>
+            <td class="td-dim">Traceability</td>
+            <td style="color:#3A5070">Zero</td>
+            <td class="td-o">High — user can seek to exact moment</td>
+          </tr>
+          <tr>
+            <td class="td-dim">Fragmentation</td>
+            <td class="td-b">May cut mid-sentence at token boundary</td>
+            <td class="td-o">Respects natural speech pauses</td>
+          </tr>
+          <tr>
+            <td class="td-dim">API cost</td>
+            <td style="color:#5580AA">Equal</td>
+            <td style="color:#5580AA">Equal — same model, same calls</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Slide 9: Findings -->
+  <section class="slide">
+    <div class="s-head">
+      <span class="s-section">Findings &amp; Reflections</span>
+      <span class="s-num">09 / 09</span>
+    </div>
+    <div class="s-body">
+      <div class="s-title">Key findings, limitations &amp; improvements</div>
+      <div class="s-rule orange"></div>
+      <div class="cols cols-2" style="flex:1;align-items:start;gap:20px">
+        <div class="col">
+          <div class="label">Findings</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="finding">
+              <span class="finding-id">F1</span>
+              <span class="finding-text">Moment RAG produces <strong style="color:#E8EFF8">verifiable answers</strong>. When the source lacks the answer, the timestamp lets the user confirm — baseline offers no such check.</span>
+            </div>
+            <div class="finding">
+              <span class="finding-id">F2</span>
+              <span class="finding-text">With only 4 chunks, a top-4 query retrieves <em>the entire transcript</em> — the baseline provides no meaningful filtering.</span>
+            </div>
+            <div class="finding">
+              <span class="finding-id">F3</span>
+              <span class="finding-text">Both systems fall back to parametric knowledge for off-topic queries. The difference: Moment RAG is <strong style="color:#E8EFF8">explicit about which segment was used</strong>.</span>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="label">Limitations</div>
+          <ul class="bullets muted" style="margin-bottom:16px">
+            <li>Long moments dilute embedding specificity</li>
+            <li>No cross-encoder reranker (original Moment RAG uses one)</li>
+            <li>Text-only — no visual branch (CLIP over frames)</li>
+            <li>8-minute video is too short to stress-test retrieval recall</li>
+          </ul>
+          <div class="label">Possible improvements</div>
+          <ul class="bullets orange">
+            <li>Add <span class="mono" style="font-size:11px">cross-encoder/ms-marco-MiniLM-L-6-v2</span> reranker</li>
+            <li>Use Whisper for videos without auto-captions</li>
+            <li>Multi-source: PDF slides + transcript (ARGUS-style)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /stage -->
+
+<!-- Navigation -->
+<button id="nav-prev" disabled>←</button>
+<div id="dots"></div>
+<button id="nav-next">→</button>
 
 <script>
   const slides = Array.from(document.querySelectorAll('.slide'));
-  const total = slides.length;
-  let current = 0;
+  const stage  = document.getElementById('stage');
+  const dotsCt = document.getElementById('dots');
+  const btnP   = document.getElementById('nav-prev');
+  const btnN   = document.getElementById('nav-next');
+  const total  = slides.length;
+  let cur = 0;
 
-  const btnPrev = document.getElementById('btn-prev');
-  const btnNext = document.getElementById('btn-next');
-  const counter = document.getElementById('counter');
-  const progress = document.getElementById('progress');
+  // Build dots
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' on' : '');
+    dotsCt.appendChild(d);
+  });
+  const dots = Array.from(dotsCt.querySelectorAll('.dot'));
+
+  // Scale stage to fit viewport
+  function scale() {
+    const scl = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+    stage.style.transform = `scale(${scl})`;
+  }
+  scale();
+  window.addEventListener('resize', scale);
 
   function go(n) {
-    slides[current].classList.remove('active');
-    current = Math.max(0, Math.min(total - 1, n));
-    slides[current].classList.add('active');
-    counter.textContent = `${current + 1} / ${total}`;
-    btnPrev.disabled = current === 0;
-    btnNext.disabled = current === total - 1;
-    progress.style.width = `${((current + 1) / total) * 100}%`;
+    slides[cur].classList.remove('active');
+    dots[cur].classList.remove('on');
+    cur = Math.max(0, Math.min(total - 1, n));
+    slides[cur].classList.add('active');
+    dots[cur].classList.add('on');
+    btnP.disabled = cur === 0;
+    btnN.disabled = cur === total - 1;
   }
 
-  btnPrev.addEventListener('click', () => go(current - 1));
-  btnNext.addEventListener('click', () => go(current + 1));
-
+  btnP.addEventListener('click', () => go(cur - 1));
+  btnN.addEventListener('click', () => go(cur + 1));
   document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(current + 1);
-    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(current - 1);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(cur + 1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(cur - 1);
   });
 
   go(0);
